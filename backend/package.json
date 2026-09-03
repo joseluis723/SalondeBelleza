@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "migrate": "node ../database/migrate.js",
+    "migrate": "NODE_PATH=./node_modules node ../database/migrate.js",
     "seed": "node ../database/seed.js"
   },
   "dependencies": {
