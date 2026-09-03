@@ -1,6 +1,6 @@
 // Ejecuta todos los archivos .sql de la carpeta migrations, en orden, contra
 // la base de datos indicada en DATABASE_URL. Seguro de ejecutar varias veces.
-require('dotenv').config();
+require('../backend/node_modules/dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
