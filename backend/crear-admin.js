@@ -29,7 +29,7 @@ async function crearAdmin() {
 }
 
 crearAdmin().catch(async (error) => {
-  console.error('Error:', error);
+  console.error('ERROR:', error);
   await pool.end();
   process.exit(1);
 });
