@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reserva tu cita — Salón</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/reservar.css" />
+</head>
+<body class="booking-body">
+
+<div class="booking-wrap">
+  <div class="booking-card">
+    <h1>💇 Agenda tu cita</h1>
+    <p class="subtitle">Elige el servicio, el profesional y el horario que prefieras.</p>
+
+    <div id="booking-step-form">
+      <label>Servicio</label>
+      <select id="bk-service"></select>
+
+      <label>Profesional</label>
+      <select id="bk-professional"></select>
+
+      <label>Fecha</label>
+      <input type="date" id="bk-date" />
+
+      <label>Horarios disponibles</label>
+      <div id="bk-slots" class="slots-grid">
+        <p class="muted">Elige un servicio, profesional y fecha para ver horarios.</p>
+      </div>
+
+      <div id="bk-contact-fields" class="hidden">
+        <label>Tu nombre</label>
+        <input type="text" id="bk-name" placeholder="Nombre completo" />
+
+        <label>Tu teléfono</label>
+        <input type="text" id="bk-phone" placeholder="Ej. 555-1234" />
+
+        <label>Tu correo (opcional)</label>
+        <input type="email" id="bk-email" placeholder="correo@ejemplo.com" />
+
+        <p id="bk-error" class="error-msg"></p>
+        <button id="bk-submit" class="btn-primary" style="width:100%; margin-top:10px;">Confirmar solicitud de cita</button>
+      </div>
+    </div>
+
+    <div id="booking-step-success" class="hidden">
+      <div class="success-icon">✅</div>
+      <h2>¡Listo!</h2>
+      <p id="bk-success-message"></p>
+      <p class="muted">El salón confirmará tu cita pronto. Si necesitas cambiarla, contáctanos directamente.</p>
+      <button class="btn-secondary" onclick="location.reload()">Agendar otra cita</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/reservar.js"></script>
+</body>
+</html>

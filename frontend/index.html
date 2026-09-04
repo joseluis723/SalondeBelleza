@@ -146,8 +146,17 @@
 
     <!-- CONFIGURACIÓN -->
     <section id="section-configuracion" class="section">
-      <div class="section-header">
-        <h2>Configuración — Usuarios</h2>
+      <h3>Reserva en línea para clientes</h3>
+      <div class="table-wrap" style="padding:16px;">
+        <p class="muted" style="margin-top:0;">Comparte este enlace con tus clientes para que agenden su propia cita. Las citas que agenden entran como <strong>pendientes</strong> hasta que tú o recepción las confirmen.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="booking-link-input" readonly style="flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+          <button class="btn-secondary" id="btn-copy-booking-link">Copiar enlace</button>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:24px;">
+        <h2>Usuarios</h2>
         <button class="btn-primary" id="btn-new-user">+ Nuevo usuario</button>
       </div>
       <div class="table-wrap"><table id="users-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody></tbody></table></div>
