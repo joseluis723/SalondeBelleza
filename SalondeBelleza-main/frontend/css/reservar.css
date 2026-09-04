@@ -1,0 +1,37 @@
+.booking-body {
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  min-height: 100vh;
+}
+.booking-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.booking-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+.booking-card h1 { margin: 0 0 4px; font-size: 22px; }
+.booking-card .subtitle { color: var(--text-muted); margin: 0 0 20px; font-size: 14px; }
+.booking-card label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+.booking-card select, .booking-card input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+}
+.slots-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px;
+}
+.slot-btn {
+  padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: white;
+  font-size: 13px; cursor: pointer; text-align: center;
+}
+.slot-btn:hover { background: #f0edfa; }
+.slot-btn.selected { border: 2px solid var(--primary); color: var(--primary); font-weight: 700; }
+.success-icon { font-size: 40px; text-align: center; }
+#booking-step-success h2 { text-align: center; margin: 6px 0; }
+#booking-step-success p { text-align: center; }

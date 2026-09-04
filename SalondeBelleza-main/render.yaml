@@ -1,0 +1,33 @@
+# Archivo de infraestructura para Render (Blueprint).
+# Al conectar este repositorio en Render y elegir "New +" > "Blueprint",
+# Render leerá este archivo y creará automáticamente:
+#   1. Un Web Service (el sistema completo: backend + frontend)
+#   2. Una base de datos PostgreSQL
+#
+# No es necesario escribir contraseñas aquí: Render las genera y las conecta solo.
+
+databases:
+  - name: salon-db
+    plan: free
+    databaseName: salon_db
+    user: salon_user
+
+services:
+  - type: web
+    name: salon-app
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run migrate
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: salon-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000

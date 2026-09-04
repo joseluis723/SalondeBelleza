@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Salón — Sistema de Gestión</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" onerror="this.remove()" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <h1>💇 Salón</h1>
+    <p class="subtitle">Inicia sesión para continuar</p>
+    <form id="login-form">
+      <label>Correo</label>
+      <input type="email" id="login-email" required placeholder="admin@salon.com" />
+      <label>Contraseña</label>
+      <input type="password" id="login-password" required placeholder="••••••••" />
+      <button type="submit">Entrar</button>
+      <p id="login-error" class="error-msg"></p>
+    </form>
+    <p class="hint">Demo: admin@salon.com / 123456</p>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">💇 Salón</div>
+    <nav id="nav-menu">
+      <a href="#" data-section="dashboard" class="nav-link active">📊 Dashboard</a>
+      <a href="#" data-section="agenda" class="nav-link">📅 Agenda</a>
+      <a href="#" data-section="clientes" class="nav-link">👥 Clientes</a>
+      <a href="#" data-section="profesionales" class="nav-link">🧑‍🎨 Profesionales</a>
+      <a href="#" data-section="servicios" class="nav-link">✂️ Servicios</a>
+      <a href="#" data-section="cobros" class="nav-link">💰 Cobros</a>
+      <a href="#" data-section="reportes" class="nav-link">📈 Reportes</a>
+      <a href="#" data-section="configuracion" class="nav-link">⚙️ Configuración</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="user-info"></div>
+      <button id="logout-btn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <button id="mobile-menu-btn" class="mobile-menu-btn">☰ Menú</button>
+
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section active">
+      <h2>Dashboard</h2>
+      <h3>Hoy</h3>
+      <div class="cards-grid" id="dashboard-today"></div>
+      <h3>Este mes</h3>
+      <div class="cards-grid" id="dashboard-month"></div>
+      <h3>Cobros esperados</h3>
+      <div class="cards-grid" id="dashboard-estimated"></div>
+      <h3>Cobros esperados por profesional</h3>
+      <div class="table-wrap"><table id="dashboard-by-prof"><thead><tr><th>Profesional</th><th>Citas futuras</th><th>Pendiente estimado</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- AGENDA -->
+    <section id="section-agenda" class="section">
+      <div class="section-header">
+        <h2>Agenda</h2>
+        <button class="btn-primary" id="btn-new-appointment">+ Nueva cita</button>
+      </div>
+      <div id="calendar"></div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section id="section-clientes" class="section">
+      <div class="section-header">
+        <h2>Clientes</h2>
+        <button class="btn-primary" id="btn-new-customer">+ Nuevo cliente</button>
+      </div>
+      <input type="text" id="customer-search" placeholder="Buscar cliente..." class="search-input" />
+      <div class="table-wrap"><table id="customers-table"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Notas</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- PROFESIONALES -->
+    <section id="section-profesionales" class="section">
+      <div class="section-header">
+        <h2>Profesionales</h2>
+        <button class="btn-primary" id="btn-new-professional">+ Nuevo profesional</button>
+      </div>
+      <div class="table-wrap"><table id="professionals-table"><thead><tr><th>Nombre</th><th>Especialidad</th><th>Teléfono</th><th>% Comisión</th><th>Activo</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section id="section-servicios" class="section">
+      <div class="section-header">
+        <h2>Servicios</h2>
+        <button class="btn-primary" id="btn-new-service">+ Nuevo servicio</button>
+      </div>
+      <div class="table-wrap"><table id="services-table"><thead><tr><th>Nombre</th><th>Precio</th><th>Duración</th><th>% Comisión</th><th>Activo</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- COBROS -->
+    <section id="section-cobros" class="section">
+      <h2>Cobros</h2>
+      <p class="muted">Citas con saldo pendiente o recientes. Selecciona una cita en la Agenda para registrar un cobro, o usa la lista de abajo.</p>
+      <div class="table-wrap"><table id="cobros-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Total</th><th>Cobrado</th><th>Saldo</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- REPORTES -->
+    <section id="section-reportes" class="section">
+      <h2>Reportes</h2>
+      <div class="filters-row">
+        <select id="report-range">
+          <option value="today">Hoy</option>
+          <option value="week">Semana</option>
+          <option value="month" selected>Mes</option>
+          <option value="last_month">Mes anterior</option>
+          <option value="custom">Rango personalizado</option>
+        </select>
+        <input type="date" id="report-from" class="hidden" />
+        <input type="date" id="report-to" class="hidden" />
+        <button class="btn-primary" id="btn-run-report">Generar</button>
+      </div>
+
+      <h3>Reporte general</h3>
+      <div class="cards-grid" id="report-general"></div>
+
+      <div class="report-section-header">
+        <h3>Por profesional</h3>
+        <button class="btn-secondary" data-export="professional">Exportar CSV</button>
+      </div>
+      <div class="table-wrap"><table id="report-by-professional"><thead><tr><th>Profesional</th><th>Servicios</th><th>Ventas</th><th>Comisión</th><th>Salón</th></tr></thead><tbody></tbody></table></div>
+
+      <div class="report-section-header">
+        <h3>Por servicio</h3>
+        <button class="btn-secondary" data-export="service">Exportar CSV</button>
+      </div>
+      <div class="table-wrap"><table id="report-by-service"><thead><tr><th>Servicio</th><th>Cantidad</th><th>Ventas</th><th>Comisión</th><th>Ganancia</th></tr></thead><tbody></tbody></table></div>
+
+      <div class="report-section-header">
+        <h3>Por método de pago</h3>
+        <button class="btn-secondary" data-export="payment-method">Exportar CSV</button>
+      </div>
+      <div class="table-wrap"><table id="report-by-method"><thead><tr><th>Método</th><th>Total</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- CONFIGURACIÓN -->
+    <section id="section-configuracion" class="section">
+      <h3>Reserva en línea para clientes</h3>
+      <div class="table-wrap" style="padding:16px;">
+        <p class="muted" style="margin-top:0;">Comparte este enlace con tus clientes para que agenden su propia cita. Las citas que agenden entran como <strong>pendientes</strong> hasta que tú o recepción las confirmen.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="booking-link-input" readonly style="flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--border); border-radius:8px;" />
+          <button class="btn-secondary" id="btn-copy-booking-link">Copiar enlace</button>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:24px;">
+        <h2>Usuarios</h2>
+        <button class="btn-primary" id="btn-new-user">+ Nuevo usuario</button>
+      </div>
+      <div class="table-wrap"><table id="users-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL genérico -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js" onerror="window.__noFullCalendar=true"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
