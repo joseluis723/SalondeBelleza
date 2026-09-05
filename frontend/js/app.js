@@ -118,7 +118,7 @@ function navigateTo(section) {
   if (section === 'servicios') loadServices();
   if (section === 'cobros') loadCobros();
   if (section === 'reportes') loadReports();
-  if (section === 'configuracion') { loadUsers(); setupBookingLink(); }
+  if (section === 'configuracion') loadUsers();
 }
 
 function debounce(fn, ms) {
@@ -641,19 +641,6 @@ function exportReport(type) {
 }
 
 // ---------- CONFIGURACIÓN / USUARIOS ----------
-function setupBookingLink() {
-  const input = document.getElementById('booking-link-input');
-  const link = `${window.location.origin}/reservar.html`;
-  input.value = link;
-  const btn = document.getElementById('btn-copy-booking-link');
-  btn.onclick = () => {
-    navigator.clipboard.writeText(link).then(() => {
-      btn.textContent = 'Copiado ✓';
-      setTimeout(() => { btn.textContent = 'Copiar enlace'; }, 1500);
-    });
-  };
-}
-
 async function loadUsers() {
   const users = await API.get('/users');
   const tbody = document.querySelector('#users-table tbody');

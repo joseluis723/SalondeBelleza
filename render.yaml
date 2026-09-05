@@ -1,30 +1,33 @@
 # Archivo de infraestructura para Render (Blueprint).
 # Al conectar este repositorio en Render y elegir "New +" > "Blueprint",
-# Render leerá este archivo y creará automáticamente:
-#   1. Un Web Service (el sistema completo: backend + frontend)
-#   2. Una base de datos PostgreSQL
+# Render creará automáticamente el Web Service con un Disco persistente
+# donde vive el archivo SQLite (salon.db).
 #
-# No es necesario escribir contraseñas aquí: Render las genera y las conecta solo.
-
-databases:
-  - name: salon-db
-    plan: free
-    databaseName: salon_db
-    user: salon_user
+# IMPORTANTE #1: los Discos persistentes de Render NO están disponibles en el
+# plan "Free" de un Web Service; se necesita al menos el plan "Starter".
+# Si usas "Free", el archivo SQLite se borrará cada vez que el servicio
+# se reinicie o se re-despliegue.
+#
+# IMPORTANTE #2: el disco persistente solo está disponible en RUNTIME, no
+# durante el "build" (Render usa una máquina aparte para compilar). Por eso
+# las migraciones NO van en buildCommand: van al inicio de startCommand,
+# que sí corre ya con el disco montado.
 
 services:
   - type: web
     name: salon-app
     runtime: node
-    plan: free
+    plan: starter
     rootDir: backend
-    buildCommand: npm install && npm run migrate
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: npm run migrate && npm start
+    disk:
+      name: salon-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: salon-db
-          property: connectionString
+        value: /var/data/salon.db
       - key: JWT_SECRET
         generateValue: true
       - key: NODE_ENV

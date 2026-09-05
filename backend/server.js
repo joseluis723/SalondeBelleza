@@ -14,7 +14,6 @@ const dashboardRoutes = require('./src/routes/dashboard.routes');
 const reportRoutes = require('./src/routes/reports.routes');
 const notificationRoutes = require('./src/routes/notifications.routes');
 const userRoutes = require('./src/routes/users.routes');
-const publicRoutes = require('./src/routes/public.routes');
 
 const app = express();
 
@@ -38,7 +37,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/public', publicRoutes); // sin autenticación: reserva de citas por el cliente
 
 // Sirve el frontend estático
 const frontendPath = path.join(__dirname, '..', 'frontend');

@@ -3,7 +3,6 @@ const pool = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { round2, getCommissionPercentage } = require('../utils/money');
-const { checkOverlap } = require('../utils/scheduling');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -58,6 +57,22 @@ router.get('/:id', asyncHandler(async (req, res) => {
   );
   res.json({ ...appt, payments: payments.rows });
 }));
+
+async function checkOverlap(client, professionalId, date, startTime, endTime, excludeId) {
+  const values = [professionalId, date, startTime, endTime];
+  let sql = `
+    SELECT id FROM appointments
+    WHERE professional_id = $1 AND date = $2
+      AND status NOT IN ('cancelada', 'no_asistio')
+      AND start_time < $4 AND end_time > $3
+  `;
+  if (excludeId) {
+    values.push(excludeId);
+    sql += ` AND id <> $${values.length}`;
+  }
+  const result = await client.query(sql, values);
+  return result.rowCount > 0;
+}
 
 router.post('/', requireRole('admin', 'reception'), asyncHandler(async (req, res) => {
   const {

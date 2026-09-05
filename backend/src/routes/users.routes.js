@@ -32,7 +32,7 @@ router.post('/', asyncHandler(async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    if (err.code === '23505') {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'SQLITE_CONSTRAINT') {
       return res.status(409).json({ error: 'Ya existe un usuario con ese correo.' });
     }
     throw err;

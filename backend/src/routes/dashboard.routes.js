@@ -19,11 +19,11 @@ router.get('/today', asyncHandler(async (req, res) => {
 
   const summary = await pool.query(
     `SELECT
-       COUNT(*) FILTER (WHERE a.status <> 'cancelada') AS citas,
-       COUNT(*) FILTER (WHERE a.status = 'completada') AS citas_completadas,
-       COALESCE(SUM(a.total) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_vendido,
-       COALESCE(SUM(a.total - a.balance) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_cobrado,
-       COALESCE(SUM(a.balance) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_pendiente
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN 1 ELSE 0 END), 0) AS citas,
+       COALESCE(SUM(CASE WHEN a.status = 'completada' THEN 1 ELSE 0 END), 0) AS citas_completadas,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.total ELSE 0 END), 0) AS total_vendido,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.total - a.balance ELSE 0 END), 0) AS total_cobrado,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.balance ELSE 0 END), 0) AS total_pendiente
      FROM appointments a
      WHERE a.date = CURRENT_DATE ${scope.clause}`,
     scope.values
@@ -56,19 +56,19 @@ router.get('/month', asyncHandler(async (req, res) => {
 
   const summary = await pool.query(
     `SELECT
-       COUNT(*) FILTER (WHERE a.status <> 'cancelada') AS citas,
-       COALESCE(SUM(a.total) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_vendido,
-       COALESCE(SUM(a.total - a.balance) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_cobrado,
-       COALESCE(SUM(a.balance) FILTER (WHERE a.status <> 'cancelada'), 0) AS total_pendiente
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN 1 ELSE 0 END), 0) AS citas,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.total ELSE 0 END), 0) AS total_vendido,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.total - a.balance ELSE 0 END), 0) AS total_cobrado,
+       COALESCE(SUM(CASE WHEN a.status <> 'cancelada' THEN a.balance ELSE 0 END), 0) AS total_pendiente
      FROM appointments a
-     WHERE date_trunc('month', a.date) = date_trunc('month', CURRENT_DATE) ${scope.clause}`,
+     WHERE strftime('%Y-%m', a.date) = strftime('%Y-%m', CURRENT_DATE) ${scope.clause}`,
     scope.values
   );
 
   const commissions = await pool.query(
     `SELECT COALESCE(SUM(c.amount), 0) AS comisiones
      FROM commissions c JOIN appointments a ON a.id = c.appointment_id
-     WHERE date_trunc('month', a.date) = date_trunc('month', CURRENT_DATE) ${scope.clause}`,
+     WHERE strftime('%Y-%m', a.date) = strftime('%Y-%m', CURRENT_DATE) ${scope.clause}`,
     scope.values
   );
 
@@ -110,8 +110,8 @@ router.get('/estimated', asyncHandler(async (req, res) => {
 
   const [today, week, month] = await Promise.all([
     estimateFor('a.date = CURRENT_DATE'),
-    estimateFor("a.date >= CURRENT_DATE AND a.date < CURRENT_DATE + INTERVAL '7 day'"),
-    estimateFor("date_trunc('month', a.date) = date_trunc('month', CURRENT_DATE) AND a.date >= CURRENT_DATE")
+    estimateFor("a.date >= CURRENT_DATE AND a.date < date(CURRENT_DATE, '+7 day')"),
+    estimateFor("strftime('%Y-%m', a.date) = strftime('%Y-%m', CURRENT_DATE) AND a.date >= CURRENT_DATE")
   ]);
 
   const byProfessionalValues = [...scope.values];

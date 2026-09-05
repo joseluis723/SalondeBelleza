@@ -7,21 +7,42 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireRole('admin', 'reception'));
 
-// Resuelve un filtro de fechas (from/to) según los presets del enunciado
+// Resuelve un filtro de fechas (from/to) según los presets del enunciado.
+// Se calcula en JavaScript (en vez de con date_trunc/INTERVAL de Postgres)
+// para que funcione igual con cualquier base de datos.
+function pad2(n) { return String(n).padStart(2, '0'); }
+function toISODate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+
 function resolveRange(query) {
   const { range, from, to } = query;
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+
   switch (range) {
-    case 'today':
-      return { from: 'CURRENT_DATE', to: 'CURRENT_DATE', raw: true };
-    case 'week':
-      return { fromExpr: "date_trunc('week', CURRENT_DATE)", toExpr: "date_trunc('week', CURRENT_DATE) + INTERVAL '6 day'" };
-    case 'month':
-      return { fromExpr: "date_trunc('month', CURRENT_DATE)", toExpr: "(date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')" };
-    case 'last_month':
-      return {
-        fromExpr: "date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'",
-        toExpr: "date_trunc('month', CURRENT_DATE) - INTERVAL '1 day'"
-      };
+    case 'today': {
+      const iso = toISODate(today);
+      return { from: iso, to: iso };
+    }
+    case 'week': {
+      // Semana de lunes a domingo
+      const dow = today.getDay(); // 0 = domingo
+      const diffToMonday = (dow + 6) % 7;
+      const monday = new Date(y, m, d - diffToMonday);
+      const sunday = new Date(y, m, d - diffToMonday + 6);
+      return { from: toISODate(monday), to: toISODate(sunday) };
+    }
+    case 'month': {
+      const first = new Date(y, m, 1);
+      const last = new Date(y, m + 1, 0);
+      return { from: toISODate(first), to: toISODate(last) };
+    }
+    case 'last_month': {
+      const first = new Date(y, m - 1, 1);
+      const last = new Date(y, m, 0);
+      return { from: toISODate(first), to: toISODate(last) };
+    }
     case 'custom':
     default:
       return { from: from || null, to: to || null };
@@ -29,10 +50,6 @@ function resolveRange(query) {
 }
 
 async function buildDateFilter(range) {
-  if (range.fromExpr && range.toExpr) {
-    const result = await pool.query(`SELECT ${range.fromExpr}::date AS f, ${range.toExpr}::date AS t`);
-    return { from: result.rows[0].f, to: result.rows[0].t };
-  }
   return { from: range.from, to: range.to };
 }
 

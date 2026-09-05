@@ -24,7 +24,7 @@ router.post('/generate-reminders', asyncHandler(async (req, res) => {
   const candidates = await pool.query(
     `SELECT a.id AS appointment_id, a.customer_id, a.start_time
      FROM appointments a
-     WHERE a.date = CURRENT_DATE + INTERVAL '1 day'
+     WHERE a.date = date(CURRENT_DATE, '+1 day')
        AND a.status IN ('pendiente', 'confirmada')
        AND NOT EXISTS (
          SELECT 1 FROM notifications n

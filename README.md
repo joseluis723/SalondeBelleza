@@ -5,7 +5,7 @@ clientes, profesionales, servicios, comisiones, cobros, pagos parciales,
 reportes, estimación de cobros futuros y notificaciones internas.
 
 - **Backend:** Node.js + Express
-- **Base de datos:** PostgreSQL (no depende de ninguna plataforma en particular)
+- **Base de datos:** SQLite (un solo archivo, sin servidor de base de datos separado)
 - **Frontend:** HTML/CSS/JavaScript, responsive (funciona en celular y computadora)
 - **Despliegue recomendado:** [Render](https://render.com)
 
@@ -19,9 +19,10 @@ Sigue los pasos en orden y no te lo saltes.
 Si solo quieres subirlo directo a Render, puedes saltar al **paso 7**.
 
 1. **Node.js** (versión 18 o superior): descárgalo de https://nodejs.org (elige la versión "LTS").
-2. **PostgreSQL**: descárgalo de https://www.postgresql.org/download/ (o usa una base de datos
-   gratuita en la nube, como la de Render, y sáltate la instalación local de PostgreSQL).
-3. **Git**: https://git-scm.com/downloads (para subir el proyecto a GitHub).
+2. **Git**: https://git-scm.com/downloads (para subir el proyecto a GitHub).
+
+No necesitas instalar ninguna base de datos por separado: SQLite es solo un
+archivo (`data/salon.db`) que se crea automáticamente.
 
 ---
 
@@ -47,28 +48,15 @@ Si solo quieres subirlo directo a Render, puedes saltar al **paso 7**.
 3. Ábrelo con cualquier editor de texto y completa:
 
    ```env
-   DATABASE_URL=postgresql://usuario:password@localhost:5432/salon_db
+   DATABASE_URL=
    JWT_SECRET=escribe-aqui-cualquier-texto-largo-y-secreto
    NODE_ENV=development
    PORT=3000
    ```
 
-   Si instalaste PostgreSQL localmente, `usuario` y `password` son los que
-   configuraste al instalarlo (por defecto el usuario suele ser `postgres`).
-
----
-
-## 4. Crear la base de datos
-
-Si instalaste PostgreSQL localmente, crea la base de datos vacía. Puedes hacerlo
-con el programa **pgAdmin** (interfaz gráfica que se instala junto con PostgreSQL)
-o desde la terminal:
-
-```bash
-psql -U postgres -c "CREATE DATABASE salon_db;"
-```
-
-(Te pedirá la contraseña que configuraste al instalar PostgreSQL.)
+   Deja `DATABASE_URL` vacío para desarrollo local: el sistema creará solo el
+   archivo `data/salon.db` en la raíz del proyecto la primera vez que corras
+   las migraciones.
 
 ---
 
@@ -149,21 +137,27 @@ qué crear, para que no tengas que configurar nada manualmente.
 2. Dentro de Render, haz clic en **"New +"** y elige **"Blueprint"**.
 3. Selecciona el repositorio de GitHub que acabas de crear.
 4. Render detectará el archivo `render.yaml` y te mostrará lo que va a crear:
-   - Un **Web Service** llamado `salon-app` (tu aplicación).
-   - Una base de datos **PostgreSQL** llamada `salon-db`.
+   - Un **Web Service** llamado `salon-app` (tu aplicación), con un **Disco
+     persistente** de 1 GB donde vive el archivo `salon.db`.
+
+   > **Importante:** los Discos persistentes de Render requieren al menos el
+   > plan **Starter** (de pago) para el Web Service; no están disponibles en
+   > el plan Free. Si usas el plan Free, el archivo SQLite se perderá cada
+   > vez que el servicio se reinicie.
 5. Haz clic en **"Apply"** / **"Create"**.
-6. Render instalará las dependencias y ejecutará las migraciones automáticamente
-   (esto ya está configurado en `render.yaml`). Este primer despliegue puede
-   tardar unos minutos.
+6. Render instalará las dependencias, y al arrancar el servicio ejecutará las
+   migraciones automáticamente sobre el disco persistente (esto ya está
+   configurado en `render.yaml`: las migraciones corren al inicio, no durante
+   el build, porque el disco solo está disponible en tiempo de ejecución).
+   Este primer despliegue puede tardar unos minutos.
 
 ---
 
 ## 9. Cómo queda configurado `DATABASE_URL`
 
-No necesitas escribirlo tú mismo: en `render.yaml` se indica que la variable
-`DATABASE_URL` del Web Service debe tomarse automáticamente de la base de datos
-`salon-db` que Render crea. Render las conecta solas. Lo mismo ocurre con
-`JWT_SECRET`, que Render genera de forma segura y aleatoria.
+En `render.yaml`, `DATABASE_URL` ya está fijado a `/var/data/salon.db`, que es
+un archivo dentro del Disco persistente que Render crea junto con el servicio.
+`JWT_SECRET` se genera solo, de forma segura y aleatoria.
 
 ---
 
@@ -206,7 +200,7 @@ salon-app/
 ├── backend/            → API en Node.js/Express
 │   ├── server.js
 │   ├── src/
-│   │   ├── config/      → conexión a PostgreSQL
+│   │   ├── config/      → conexión a SQLite (better-sqlite3)
 │   │   ├── middleware/  → autenticación y roles
 │   │   ├── routes/      → endpoints de la API
 │   │   └── utils/       → cálculos de comisiones y saldos
@@ -232,9 +226,11 @@ salon-app/
 
 ## Preguntas frecuentes
 
-**¿Puedo usar otra base de datos que no sea PostgreSQL?**
-No es recomendable: todo el sistema (migraciones, consultas y reportes) está
-escrito específicamente para PostgreSQL.
+**¿Puedo rentar este sistema a varios salones distintos?**
+Sí: como cada instalación usa su propio archivo SQLite, la forma recomendada
+es desplegar una instancia (Web Service + Disco) separada por cada salón/marca
+que te rente el sistema, cada una con su propio `DATABASE_URL` y sus propios
+datos, completamente aislados entre sí.
 
 **¿Cómo agrego WhatsApp o correo a las notificaciones más adelante?**
 Las notificaciones ya se guardan en la tabla `notifications` con toda la
