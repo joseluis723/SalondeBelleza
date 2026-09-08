@@ -3,6 +3,8 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
+const pool = require('./src/config/db');
+
 const authRoutes = require('./src/routes/auth.routes');
 const customerRoutes = require('./src/routes/customers.routes');
 const professionalRoutes = require('./src/routes/professionals.routes');
