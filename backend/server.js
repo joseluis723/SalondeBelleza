@@ -41,6 +41,7 @@ app.get('/api/debug/users', async (req, res) => {
   }
 });
 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/professionals', professionalRoutes);
