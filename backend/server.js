@@ -25,6 +25,21 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role FROM users'
+    );
+
+    res.json({
+      count: result.rowCount,
+      users: result.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
