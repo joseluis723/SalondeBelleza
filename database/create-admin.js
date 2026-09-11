@@ -7,25 +7,31 @@ async function createAdmin() {
     const password = '123456';
     const name = 'Administrador';
 
-    const existing = await pool.query(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
-    );
+    console.log('Verificando administrador...');
 
-    if (existing.rowCount > 0) {
+    const existing = pool.db
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .get(email);
+
+    if (existing) {
       console.log(`El usuario ${email} ya existe. No se modifica.`);
       return;
     }
 
+    console.log('Creando administrador...');
+
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await pool.query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES (?, ?, ?, ?)`,
-      [name, email, passwordHash, 'admin']
-    );
+    pool.db
+      .prepare(`
+        INSERT INTO users (name, email, password_hash, role)
+        VALUES (?, ?, ?, ?)
+      `)
+      .run(name, email, passwordHash, 'admin');
 
-    console.log(`Administrador creado: ${email}`);
+    console.log(`Administrador creado correctamente: ${email}`);
+    console.log('Contraseña: 123456');
+
   } catch (err) {
     console.error('Error creando administrador:', err);
     process.exitCode = 1;
