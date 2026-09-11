@@ -4,9 +4,10 @@
   "description": "Backend del sistema de gestión de salón de belleza",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "migrate": "NODE_PATH=./node_modules node ../database/migrate.js",
-    "seed": "node ../database/seed.js",
+  "start": "node server.js",
+  "migrate": "NODE_PATH=./node_modules node ../database/migrate.js",
+  "create-admin": "NODE_PATH=./node_modules node ../database/create-admin.js",
+  "seed": "NODE_PATH=./node_modules node ../database/seed.js",
     "create-admin": "NODE_PATH=./node_modules node ../database/create-admin.js"
 
 
