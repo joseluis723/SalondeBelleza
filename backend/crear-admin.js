@@ -1,35 +1,37 @@
-require('dotenv').config();
+const bcrypt = require('bcryptjs');
+const pool = require('../backend/src/config/db');
 
-const bcrypt = require('../backend/node_modules/bcryptjs');
-const pool = require('./src/config/db');
+async function createAdmin() {
+  try {
+    const email = 'admin@salon.com';
+    const password = '123456';
+    const name = 'Administrador';
 
-async function crearAdmin() {
-  const nombre = 'Administrador';
-  const email = 'admin@salon.com';
-  const password = 'Admin123!';
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
 
-  const passwordHash = await bcrypt.hash(password, 10);
+    if (existing.rowCount > 0) {
+      console.log(`El usuario ${email} ya existe. No se modifica.`);
+      return;
+    }
 
-  await pool.query(
-    `INSERT INTO users (name, email, password_hash, role)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (email)
-     DO UPDATE SET
-       name = EXCLUDED.name,
-       password_hash = EXCLUDED.password_hash,
-       role = EXCLUDED.role`,
-    [nombre, email, passwordHash, 'admin']
-  );
+    const passwordHash = await bcrypt.hash(password, 10);
 
-  console.log('Administrador creado correctamente.');
-  console.log('Correo:', email);
-  console.log('Contraseña:', password);
+    await pool.query(
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, $4)`,
+      [name, email, passwordHash, 'admin']
+    );
 
-  await pool.end();
+    console.log(`Administrador creado: ${email}`);
+  } catch (err) {
+    console.error('Error creando administrador:', err);
+    process.exitCode = 1;
+  } finally {
+    await pool.end();
+  }
 }
 
-crearAdmin().catch(async (error) => {
-  console.error('ERROR:', error);
-  await pool.end();
-  process.exit(1);
-});
+createAdmin();
