@@ -109,8 +109,21 @@ function formatResult(rs, sql) {
 }
 
 async function runQuery(executor, sql, values) {
-  const rs = await executor.execute({ sql: toSqliteSql(sql), args: toNamedParams(values) });
-  return formatResult(rs, sql);
+  const finalSql = toSqliteSql(sql);
+  const args = toNamedParams(values);
+  try {
+    const rs = await executor.execute({ sql: finalSql, args });
+    return formatResult(rs, sql);
+  } catch (err) {
+    // Diagnóstico: si el driver rechaza algún valor, mostramos aquí mismo
+    // cuál era ese valor y de qué tipo, para no tener que adivinar.
+    console.error('--- Error ejecutando consulta SQL ---');
+    console.error('SQL:', finalSql);
+    console.error('Valores recibidos:', (values || []).map((v, i) => `p${i + 1}=${JSON.stringify(v)} (tipo original: ${typeof v})`));
+    console.error('Valores enviados al driver:', Object.entries(args).map(([k, v]) => `${k}=${JSON.stringify(v)} (tipo: ${typeof v})`));
+    console.error('Error original:', err.message);
+    throw err;
+  }
 }
 
 /* ------------------------------------------------------------------ *
