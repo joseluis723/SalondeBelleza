@@ -60,7 +60,13 @@ function normalizeValue(v) {
   if (v === undefined || v === null) return null;
   if (typeof v === 'boolean') return v ? 1 : 0;
   if (v instanceof Date) return v.toISOString();
-  return v;
+  // El driver de SQLite solo acepta number, string, bigint, buffer o null.
+  // Cualquier otra cosa (por ejemplo un objeto o un arreglo enviados por error
+  // desde un formulario) se guarda como texto en vez de romper la consulta.
+  const tipo = typeof v;
+  if (tipo === 'number' || tipo === 'string' || tipo === 'bigint') return v;
+  if (Buffer.isBuffer(v)) return v;
+  return JSON.stringify(v);
 }
 
 function toNamedParams(values) {
