@@ -1,0 +1,33 @@
+# Blueprint de Render. Con Turso (base de datos SQLite en la nube) ya NO se
+# necesita disco persistente, así que esto funciona en el plan GRATIS.
+#
+# Después de crear el servicio, entra a Render > tu servicio > Environment
+# y pega los valores reales de TURSO_DATABASE_URL y TURSO_AUTH_TOKEN.
+
+services:
+  - type: web
+    name: salon-app
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    # Las migraciones y los usuarios administradores se crean en cada arranque.
+    # Ambos scripts son seguros de ejecutar muchas veces.
+    startCommand: npm run migrate && npm run create-admin && npm start
+    envVars:
+      - key: TURSO_DATABASE_URL
+        sync: false          # lo pegas tú en el panel de Render
+      - key: TURSO_AUTH_TOKEN
+        sync: false          # lo pegas tú en el panel de Render
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@salon.com
+      - key: ADMIN_PASSWORD
+        sync: false          # elige tu contraseña de administrador
+      - key: NODE_ENV
+        value: production
+      - key: BUSINESS_HOURS_START
+        value: "09:00"
+      - key: BUSINESS_HOURS_END
+        value: "19:00"

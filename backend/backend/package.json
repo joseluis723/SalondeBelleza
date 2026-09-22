@@ -1,0 +1,25 @@
+{
+  "name": "salon-backend",
+  "version": "2.0.0",
+  "description": "Backend del sistema de gestión de salón de belleza (SQLite / Turso)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node ../database/migrate.js",
+    "seed": "node ../database/seed.js",
+    "create-admin": "node ../database/create-admin.js",
+    "setup": "npm run migrate && npm run create-admin"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.4",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.14"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

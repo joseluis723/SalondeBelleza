@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Estado de mi cita — Salón</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/reservar.css" />
+</head>
+<body class="booking-body">
+
+<div class="booking-wrap">
+  <div class="booking-card">
+    <h1>🔎 Estado de mi cita</h1>
+    <p class="subtitle">Escribe el código que recibiste al reservar.</p>
+
+    <div class="code-row">
+      <input type="text" id="code-input" placeholder="Ej. K7P2QA" maxlength="10" style="text-transform:uppercase" />
+      <button id="code-btn" class="btn-primary">Buscar</button>
+    </div>
+    <p id="code-error" class="error-msg"></p>
+
+    <div id="cita-box" class="hidden">
+      <div id="estado-banner" class="estado-banner"></div>
+      <table class="detalle-table">
+        <tr><td>Cliente</td><td id="d-cliente"></td></tr>
+        <tr><td>Servicio</td><td id="d-servicio"></td></tr>
+        <tr><td>Profesional</td><td id="d-profesional"></td></tr>
+        <tr><td>Fecha</td><td id="d-fecha"></td></tr>
+        <tr><td>Hora</td><td id="d-hora"></td></tr>
+        <tr><td>Total</td><td id="d-total"></td></tr>
+        <tr><td>Pago de reserva</td><td id="d-pago"></td></tr>
+      </table>
+      <p class="muted" id="auto-refresh-note">Esta página se actualiza sola cada 30 segundos.</p>
+      <a href="reservar.html" class="btn-secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px;">Agendar otra cita</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/mi-cita.js"></script>
+</body>
+</html>
