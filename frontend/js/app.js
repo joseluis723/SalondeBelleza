@@ -28,6 +28,7 @@ function showApp() {
   applyRoleVisibility();
   document.getElementById('user-info').textContent = `${currentUser.name} · ${roleLabel(currentUser.role)}`;
   navigateTo('dashboard');
+  if (currentUser.role !== 'professional') refreshReservasBadge();
 }
 
 function roleLabel(role) {
@@ -47,6 +48,7 @@ function applyRoleVisibility() {
       if (section === 'profesionales' || section === 'servicios') link.style.display = 'none';
     } else if (currentUser.role === 'professional') {
       link.style.display = (section === 'dashboard' || section === 'agenda' || section === 'cobros') ? '' : 'none';
+      if (section === 'reservas') link.style.display = 'none';
     }
   });
 }
@@ -87,6 +89,30 @@ function bindGlobalEvents() {
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'modal-overlay') closeModal();
   });
+
+  // Reservas web
+  document.getElementById('btn-reload-reservas').addEventListener('click', loadReservas);
+  document.getElementById('reservas-filter').addEventListener('change', loadReservas);
+
+  // Pestañas de configuración
+  document.querySelectorAll('.config-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.config-tab').forEach((t) => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('.config-panel').forEach((panel) => {
+        panel.classList.toggle('hidden', panel.id !== 'tab-' + tab.dataset.tab);
+      });
+    });
+  });
+
+  // Configuración de pago / QR
+  document.getElementById('qr-file').addEventListener('change', onQrSelected);
+  document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+  document.getElementById('btn-remove-qr').addEventListener('click', removeQr);
+}
+
+// Pregunta de confirmación reutilizable para los borrados
+function confirmarBorrado(texto) {
+  return window.confirm(texto + '\n\nEsta acción no se puede deshacer.');
 }
 
 async function onLogin(e) {
@@ -113,12 +139,13 @@ function navigateTo(section) {
 
   if (section === 'dashboard') loadDashboard();
   if (section === 'agenda') loadAgenda();
+  if (section === 'reservas') loadReservas();
   if (section === 'clientes') loadCustomers();
   if (section === 'profesionales') loadProfessionals();
   if (section === 'servicios') loadServices();
   if (section === 'cobros') loadCobros();
   if (section === 'reportes') loadReports();
-  if (section === 'configuracion') loadUsers();
+  if (section === 'configuracion') { loadUsers(); loadSettings(); }
 }
 
 function debounce(fn, ms) {
@@ -324,6 +351,8 @@ function openAppointmentDetail(appt) {
     <p class="muted">${appt.date.slice(0,10)} · ${appt.start_time.slice(0,5)} - ${appt.end_time.slice(0,5)} · con ${appt.professional_name}</p>
     <p>Estado: <span class="badge badge-${appt.status}">${statusLabel(appt.status)}</span></p>
     <p>Total: ${money(appt.total)} &nbsp; Saldo: ${money(appt.balance)}</p>
+    ${appt.public_code ? `<p class="muted">Código de reserva: <strong>${appt.public_code}</strong></p>` : ''}
+    ${appt.has_proof ? `<p><button class="btn-secondary" onclick="verComprobante(${appt.id})">🧾 Ver comprobante de pago</button></p>` : ''}
     ${appt.notes ? `<p class="muted">Notas: ${appt.notes}</p>` : ''}
     ${canManage ? `
       <label>Cambiar estado</label>
@@ -331,6 +360,7 @@ function openAppointmentDetail(appt) {
         ${['pendiente','confirmada','completada','cancelada','no_asistio'].map(s => `<option value="${s}" ${s === appt.status ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
       </select>
       <div class="modal-actions">
+        ${isAdmin() ? `<button class="btn-danger" id="btn-delete-appt">🗑️ Eliminar cita</button>` : ''}
         <button class="btn-secondary" onclick="closeModal()">Cerrar</button>
         ${appt.balance > 0 ? `<button class="btn-secondary" id="btn-cobrar">Registrar cobro</button>` : ''}
         <button class="btn-primary" id="btn-save-status">Guardar estado</button>
@@ -341,11 +371,20 @@ function openAppointmentDetail(appt) {
   if (canManage) {
     document.getElementById('btn-save-status').addEventListener('click', async () => {
       const status = document.getElementById('appt-status-select').value;
-      await API.put(`/appointments/${appt.id}/status`, { status });
-      closeModal();
-      loadAgenda();
-      loadDashboard();
+      try {
+        const result = await API.put(`/appointments/${appt.id}/status`, { status });
+        closeModal();
+        mostrarAvisoNotificacion(result.notification, status);
+        loadAgenda();
+        loadDashboard();
+        refreshReservasBadge();
+      } catch (err) {
+        alert(err.message);
+      }
     });
+
+    const deleteBtn = document.getElementById('btn-delete-appt');
+    if (deleteBtn) deleteBtn.addEventListener('click', () => deleteAppointment(appt.id));
     const cobrarBtn = document.getElementById('btn-cobrar');
     if (cobrarBtn) cobrarBtn.addEventListener('click', () => openPaymentModal(appt));
   }
@@ -405,7 +444,10 @@ async function loadCustomers() {
   tbody.innerHTML = customers.map((c) => `
     <tr>
       <td>${c.name}</td><td>${c.phone || ''}</td><td>${c.email || ''}</td><td>${c.notes || ''}</td>
-      <td><button class="btn-icon" onclick='openCustomerModal(${JSON.stringify(c)})'>✏️</button></td>
+      <td><div class="row-actions">
+        <button class="btn-icon" title="Editar" onclick='openCustomerModal(${JSON.stringify(c)})'>✏️</button>
+        ${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteCustomer(${c.id}, ${JSON.stringify(c.name)})">🗑️</button>` : ''}
+      </div></td>
     </tr>
   `).join('') || '<tr><td colspan="5">Sin clientes todavía.</td></tr>';
 }
@@ -458,7 +500,10 @@ async function loadProfessionals() {
     <tr>
       <td>${p.name}</td><td>${p.specialty || ''}</td><td>${p.phone || ''}</td>
       <td>${p.commission_percentage}%</td><td>${p.active ? 'Sí' : 'No'}</td>
-      <td><button class="btn-icon" onclick='openProfessionalModal(${JSON.stringify(p)})'>✏️</button></td>
+      <td><div class="row-actions">
+        <button class="btn-icon" title="Editar" onclick='openProfessionalModal(${JSON.stringify(p)})'>✏️</button>
+        ${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteProfessional(${p.id}, ${JSON.stringify(p.name)})">🗑️</button>` : ''}
+      </div></td>
     </tr>
   `).join('') || '<tr><td colspan="6">Sin profesionales todavía.</td></tr>';
 }
@@ -514,7 +559,10 @@ async function loadServices() {
       <td>${s.name}</td><td>${money(s.price)}</td><td>${s.duration_minutes} min</td>
       <td>${s.commission_percentage != null ? s.commission_percentage + '%' : '—'}</td>
       <td>${s.active ? 'Sí' : 'No'}</td>
-      <td><button class="btn-icon" onclick='openServiceModal(${JSON.stringify(s)})'>✏️</button></td>
+      <td><div class="row-actions">
+        <button class="btn-icon" title="Editar" onclick='openServiceModal(${JSON.stringify(s)})'>✏️</button>
+        ${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteService(${s.id}, ${JSON.stringify(s.name)})">🗑️</button>` : ''}
+      </div></td>
     </tr>
   `).join('') || '<tr><td colspan="6">Sin servicios todavía.</td></tr>';
 }
@@ -576,7 +624,10 @@ async function loadCobros() {
       <td>${a.date.slice(0,10)}</td><td>${a.customer_name}</td><td>${a.service_name}</td>
       <td>${money(a.total)}</td><td>${money(a.total - a.balance)}</td><td>${money(a.balance)}</td>
       <td><span class="badge badge-${a.status}">${statusLabel(a.status)}</span></td>
-      <td>${a.balance > 0 && (currentUser.role === 'admin' || currentUser.role === 'reception') ? `<button class="btn-secondary" onclick='openPaymentModal(${JSON.stringify(a)})'>Cobrar</button>` : ''}</td>
+      <td><div class="row-actions">
+        ${a.balance > 0 && (currentUser.role === 'admin' || currentUser.role === 'reception') ? `<button class="btn-secondary" onclick='openPaymentModal(${JSON.stringify(a)})'>Cobrar</button>` : ''}
+        ${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar cita" onclick="deleteAppointment(${a.id})">🗑️</button>` : ''}
+      </div></td>
     </tr>
   `).join('') || '<tr><td colspan="8">Sin citas todavía.</td></tr>';
 }
@@ -647,7 +698,10 @@ async function loadUsers() {
   tbody.innerHTML = users.map((u) => `
     <tr>
       <td>${u.name}</td><td>${u.email}</td><td>${roleLabel(u.role)}</td>
-      <td><button class="btn-icon" onclick='openUserModal(${JSON.stringify(u)})'>✏️</button></td>
+      <td><div class="row-actions">
+        <button class="btn-icon" title="Editar" onclick='openUserModal(${JSON.stringify(u)})'>✏️</button>
+        ${u.id !== currentUser.id ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteUser(${u.id}, ${JSON.stringify(u.name)})">🗑️</button>` : ''}
+      </div></td>
     </tr>
   `).join('') || '<tr><td colspan="4">Sin usuarios todavía.</td></tr>';
 }
@@ -706,5 +760,344 @@ async function openUserModal(user) {
     } catch (err) {
       document.getElementById('user-error').textContent = err.message;
     }
+  });
+}
+
+/* =================================================================
+   BORRADOS (solo administrador)
+   ================================================================= */
+function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+
+async function deleteAppointment(id) {
+  if (!confirmarBorrado('¿Eliminar esta cita junto con sus pagos y comisiones?')) return;
+  try {
+    await API.del(`/appointments/${id}`);
+    closeModal();
+    loadAgenda();
+    loadCobros();
+    loadDashboard();
+    if (document.getElementById('section-reservas').classList.contains('active')) loadReservas();
+    refreshReservasBadge();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteCustomer(id, name) {
+  if (!confirmarBorrado(`¿Eliminar al cliente "${name}"?`)) return;
+  try {
+    await API.del(`/customers/${id}`);
+    loadCustomers();
+  } catch (err) {
+    // El cliente tiene citas: se ofrece borrar todo su historial
+    if (/cita\(s\) registradas/.test(err.message)) {
+      if (window.confirm(err.message + '\n\n¿Quieres eliminar también todas sus citas?')) {
+        try {
+          await API.del(`/customers/${id}?force=1`);
+          loadCustomers();
+          loadDashboard();
+          return;
+        } catch (e2) { alert(e2.message); return; }
+      }
+      return;
+    }
+    alert(err.message);
+  }
+}
+
+async function deleteProfessional(id, name) {
+  if (!confirmarBorrado(`¿Eliminar al profesional "${name}"?`)) return;
+  try {
+    await API.del(`/professionals/${id}`);
+    loadProfessionals();
+  } catch (err) {
+    if (/No se puede eliminar/.test(err.message)) {
+      if (window.confirm(err.message + '\n\n¿Quieres desactivarlo en su lugar?')) {
+        await API.post(`/professionals/${id}/deactivate`, {});
+        loadProfessionals();
+      }
+      return;
+    }
+    alert(err.message);
+  }
+}
+
+async function deleteService(id, name) {
+  if (!confirmarBorrado(`¿Eliminar el servicio "${name}"?`)) return;
+  try {
+    await API.del(`/services/${id}`);
+    loadServices();
+  } catch (err) {
+    if (/No se puede eliminar/.test(err.message)) {
+      if (window.confirm(err.message + '\n\n¿Quieres desactivarlo en su lugar?')) {
+        await API.post(`/services/${id}/deactivate`, {});
+        loadServices();
+      }
+      return;
+    }
+    alert(err.message);
+  }
+}
+
+async function deleteUser(id, name) {
+  if (!confirmarBorrado(`¿Eliminar al usuario "${name}"? Ya no podrá iniciar sesión.`)) return;
+  try {
+    await API.del(`/users/${id}`);
+    loadUsers();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteNotification(id) {
+  if (!confirmarBorrado('¿Eliminar este aviso del historial?')) return;
+  await API.del(`/notifications/${id}`);
+  loadNotifications();
+}
+
+/* =================================================================
+   RESERVAS HECHAS POR CLIENTES DESDE LA WEB
+   ================================================================= */
+async function loadReservas() {
+  const status = document.getElementById('reservas-filter').value;
+  const params = new URLSearchParams({ source: 'web' });
+  if (status) params.set('status', status);
+
+  const reservas = await API.get(`/appointments?${params}`);
+  const tbody = document.querySelector('#reservas-table tbody');
+
+  tbody.innerHTML = reservas.map((a) => `
+    <tr>
+      <td><strong>${a.public_code || '—'}</strong></td>
+      <td>${String(a.date).slice(0, 10)}<br /><span class="muted">${String(a.start_time).slice(0, 5)}</span></td>
+      <td>${a.customer_name}<br /><span class="muted">${a.customer_phone || ''}</span></td>
+      <td>${a.service_name}<br /><span class="muted">${a.professional_name}</span></td>
+      <td>${money(a.total)}</td>
+      <td>
+        <span class="badge-pago badge-${a.payment_status}">${pagoLabel(a.payment_status)}</span>
+        ${a.has_proof ? `<br /><button class="btn-icon" title="Ver comprobante" onclick="verComprobante(${a.id})">🧾</button>` : ''}
+      </td>
+      <td><span class="badge badge-${a.status}">${statusLabel(a.status)}</span></td>
+      <td><div class="row-actions">
+        ${a.status === 'pendiente' ? `<button class="btn-primary" onclick="confirmarReserva(${a.id})">Confirmar</button>` : ''}
+        ${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteAppointment(${a.id})">🗑️</button>` : ''}
+      </div></td>
+    </tr>
+  `).join('') || '<tr><td colspan="8">No hay reservas web con ese filtro.</td></tr>';
+
+  loadNotifications();
+  refreshReservasBadge();
+}
+
+function pagoLabel(status) {
+  return {
+    sin_pago: 'Sin comprobante',
+    comprobante_enviado: 'Por revisar',
+    verificado: 'Verificado',
+    rechazado: 'Rechazado'
+  }[status] || status || '—';
+}
+
+async function refreshReservasBadge() {
+  try {
+    const pendientes = await API.get('/appointments?source=web&status=pendiente');
+    const badge = document.getElementById('reservas-badge');
+    badge.textContent = pendientes.length;
+    badge.classList.toggle('hidden', pendientes.length === 0);
+  } catch (_) { /* sin sesión todavía */ }
+}
+
+// Ver la captura del pago que subió el cliente
+async function verComprobante(appointmentId) {
+  openModal('<h3>Comprobante de pago</h3><p class="muted">Cargando...</p>');
+  try {
+    const data = await API.get(`/appointments/${appointmentId}/proof`);
+    openModal(`
+      <h3>Comprobante de pago</h3>
+      ${data.payment_reference ? `<p>Referencia: <strong>${data.payment_reference}</strong></p>` : ''}
+      <p>Estado: <span class="badge-pago badge-${data.payment_status}">${pagoLabel(data.payment_status)}</span></p>
+      ${data.payment_proof
+        ? `<img src="${data.payment_proof}" class="proof-image" alt="Comprobante" />`
+        : '<p class="muted">El cliente no subió ninguna imagen.</p>'}
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cerrar</button>
+        <button class="btn-danger" onclick="marcarPago(${appointmentId}, 'rechazado')">Rechazar pago</button>
+        <button class="btn-primary" onclick="marcarPago(${appointmentId}, 'verificado')">Pago verificado</button>
+      </div>
+    `);
+  } catch (err) {
+    openModal(`<h3>Comprobante</h3><p class="error-msg">${err.message}</p>
+      <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Cerrar</button></div>`);
+  }
+}
+
+async function marcarPago(appointmentId, payment_status) {
+  try {
+    await API.put(`/appointments/${appointmentId}/payment-status`, { payment_status });
+    closeModal();
+    loadReservas();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Confirmar la cita: el cliente recibe el aviso de "cita confirmada"
+async function confirmarReserva(appointmentId) {
+  try {
+    const result = await API.put(`/appointments/${appointmentId}/status`, { status: 'confirmada' });
+    mostrarAvisoNotificacion(result.notification, 'confirmada');
+    loadReservas();
+    loadDashboard();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Muestra qué pasó con el aviso al cliente y ofrece mandarlo por WhatsApp
+function mostrarAvisoNotificacion(notification, status) {
+  if (!notification) return;
+
+  const emailLine = notification.email_sent
+    ? '<p class="aviso-ok">✅ Se envió un correo al cliente.</p>'
+    : '<p class="aviso-info">El aviso quedó guardado y el cliente puede verlo con su código de reserva. Para avisarle ahora mismo, envíaselo por WhatsApp.</p>';
+
+  openModal(`
+    <h3>${status === 'confirmada' ? '✅ Cita confirmada' : 'Estado actualizado'}</h3>
+    ${emailLine}
+    <p><strong>Mensaje para el cliente:</strong></p>
+    <p class="muted" style="background:#f7f4ff;padding:10px;border-radius:8px;">${notification.message}</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cerrar</button>
+      ${notification.whatsapp_url
+        ? `<a class="btn-primary" style="text-decoration:none;" target="_blank" href="${notification.whatsapp_url}" onclick="closeModal()">📲 Enviar por WhatsApp</a>`
+        : ''}
+    </div>
+  `);
+}
+
+/* ---------- historial de avisos ---------- */
+async function loadNotifications() {
+  try {
+    const notifications = await API.get('/notifications');
+    const tbody = document.querySelector('#notifications-table tbody');
+    tbody.innerHTML = notifications.slice(0, 30).map((n) => `
+      <tr>
+        <td>${String(n.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+        <td>${n.customer_name || '—'}</td>
+        <td>${n.type}</td>
+        <td>${n.message}</td>
+        <td>${isAdmin() ? `<button class="btn-icon-danger" title="Eliminar" onclick="deleteNotification(${n.id})">🗑️</button>` : ''}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="5">Todavía no se enviaron avisos.</td></tr>';
+  } catch (_) { /* recepción/profesional sin permiso */ }
+}
+
+/* =================================================================
+   CONFIGURACIÓN DE PAGO / QR
+   ================================================================= */
+let qrDataUrl = null;
+
+async function loadSettings() {
+  if (!isAdmin()) return;
+  try {
+    const cfg = await API.get('/settings');
+    qrDataUrl = cfg.payment_qr_image || null;
+
+    document.getElementById('cfg-business-name').value = cfg.business_name || '';
+    document.getElementById('cfg-business-phone').value = cfg.business_phone || '';
+    document.getElementById('cfg-holder').value = cfg.payment_holder || '';
+    document.getElementById('cfg-bank').value = cfg.payment_bank || '';
+    document.getElementById('cfg-instructions').value = cfg.payment_instructions || '';
+    document.getElementById('cfg-deposit-type').value = cfg.deposit_type || 'percent';
+    document.getElementById('cfg-deposit-value').value = cfg.deposit_value || '0';
+    document.getElementById('cfg-require-proof').checked = cfg.require_proof === '1';
+
+    renderQrPreview();
+  } catch (err) {
+    document.getElementById('cfg-error').textContent = err.message;
+  }
+}
+
+function renderQrPreview() {
+  const box = document.getElementById('qr-preview-box');
+  box.innerHTML = qrDataUrl
+    ? `<img src="${qrDataUrl}" class="qr-preview" alt="QR de pago" />`
+    : '<p class="muted">Todavía no hay ningún QR cargado.</p>';
+}
+
+function onQrSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  comprimirImagen(file, 900, 0.85)
+    .then((dataUrl) => {
+      qrDataUrl = dataUrl;
+      renderQrPreview();
+      document.getElementById('cfg-msg').classList.add('hidden');
+      document.getElementById('cfg-error').textContent = 'QR cargado. No olvides pulsar "Guardar configuración".';
+    })
+    .catch(() => {
+      document.getElementById('cfg-error').textContent = 'No se pudo leer esa imagen.';
+    });
+}
+
+async function removeQr() {
+  if (!window.confirm('¿Quitar el QR de pago?')) return;
+  await API.del('/settings/qr');
+  qrDataUrl = null;
+  renderQrPreview();
+}
+
+async function saveSettings() {
+  const msgEl = document.getElementById('cfg-msg');
+  const errEl = document.getElementById('cfg-error');
+  msgEl.classList.add('hidden');
+  errEl.textContent = '';
+
+  const payload = {
+    business_name: document.getElementById('cfg-business-name').value,
+    business_phone: document.getElementById('cfg-business-phone').value,
+    payment_holder: document.getElementById('cfg-holder').value,
+    payment_bank: document.getElementById('cfg-bank').value,
+    payment_instructions: document.getElementById('cfg-instructions').value,
+    deposit_type: document.getElementById('cfg-deposit-type').value,
+    deposit_value: document.getElementById('cfg-deposit-value').value,
+    require_proof: document.getElementById('cfg-require-proof').checked ? '1' : '0'
+  };
+  if (qrDataUrl) payload.payment_qr_image = qrDataUrl;
+
+  try {
+    await API.put('/settings', payload);
+    msgEl.textContent = '✅ Configuración guardada. El cliente ya verá este QR al reservar.';
+    msgEl.classList.remove('hidden');
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+// Reduce el peso de la imagen antes de guardarla en la base de datos
+function comprimirImagen(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        const scale = Math.min(1, maxSize / Math.max(width, height));
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   });
 }

@@ -152,3 +152,59 @@ tr:last-child td { border-bottom: none; }
   .mobile-menu-btn { display: inline-block; }
   .content { padding: 16px; }
 }
+
+/* ---- botones de acción en las tablas ---- */
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.btn-danger {
+  background: #dc2626; color: white; border: none; border-radius: 8px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.btn-danger:hover { background: #b91c1c; }
+.btn-icon-danger {
+  background: #fee2e2; border: none; border-radius: 8px; padding: 6px 9px;
+  cursor: pointer; font-size: 14px;
+}
+.btn-icon-danger:hover { background: #fecaca; }
+
+/* ---- reservas web / comprobantes ---- */
+.badge-pago { padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-sin_pago { background: #f3f4f6; color: #4b5563; }
+.badge-comprobante_enviado { background: #fef3c7; color: #92400e; }
+.badge-verificado { background: #dcfce7; color: #166534; }
+.badge-rechazado { background: #fee2e2; color: #991b1b; }
+
+.proof-image {
+  max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin-top: 8px;
+}
+.qr-preview {
+  max-width: 220px; border-radius: 10px; border: 1px solid var(--border);
+  background: white; padding: 8px; display: block; margin: 10px 0;
+}
+.aviso-ok {
+  background: #dcfce7; color: #166534; border-radius: 10px; padding: 12px;
+  font-size: 14px; margin: 12px 0;
+}
+.aviso-info {
+  background: #eef2ff; color: #3730a3; border-radius: 10px; padding: 12px;
+  font-size: 14px; margin: 12px 0;
+}
+.config-tabs { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+.config-tab {
+  padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: white; cursor: pointer; font-size: 14px; font-weight: 600;
+}
+.config-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+.config-form { max-width: 560px; }
+.config-form label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+.config-form input, .config-form select, .config-form textarea {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+}
+.public-links { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 20px; }
+.public-links a {
+  background: #f1eefb; color: var(--primary); padding: 8px 14px; border-radius: 20px;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.nav-badge {
+  background: #dc2626; color: white; border-radius: 20px; font-size: 11px;
+  padding: 1px 7px; margin-left: 6px; font-weight: 700;
+}

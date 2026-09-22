@@ -14,7 +14,14 @@
     <h1>💇 Agenda tu cita</h1>
     <p class="subtitle">Elige el servicio, el profesional y el horario que prefieras.</p>
 
-    <div id="booking-step-form">
+    <div class="steps-bar">
+      <span class="step-dot active" data-step="1">1. Horario</span>
+      <span class="step-dot" data-step="2">2. Tus datos</span>
+      <span class="step-dot" data-step="3">3. Pago</span>
+    </div>
+
+    <!-- PASO 1: horario -->
+    <div id="step-1">
       <label>Servicio</label>
       <select id="bk-service"></select>
 
@@ -29,27 +36,70 @@
         <p class="muted">Elige un servicio, profesional y fecha para ver horarios.</p>
       </div>
 
-      <div id="bk-contact-fields" class="hidden">
-        <label>Tu nombre</label>
-        <input type="text" id="bk-name" placeholder="Nombre completo" />
+      <button id="bk-to-step2" class="btn-primary hidden" style="width:100%;margin-top:14px;">Continuar</button>
+    </div>
 
-        <label>Tu teléfono</label>
-        <input type="text" id="bk-phone" placeholder="Ej. 555-1234" />
+    <!-- PASO 2: datos del cliente -->
+    <div id="step-2" class="hidden">
+      <div class="resumen" id="bk-resumen-1"></div>
 
-        <label>Tu correo (opcional)</label>
-        <input type="email" id="bk-email" placeholder="correo@ejemplo.com" />
+      <label>Tu nombre</label>
+      <input type="text" id="bk-name" placeholder="Nombre completo" />
 
-        <p id="bk-error" class="error-msg"></p>
-        <button id="bk-submit" class="btn-primary" style="width:100%; margin-top:10px;">Confirmar solicitud de cita</button>
+      <label>Tu teléfono (WhatsApp)</label>
+      <input type="text" id="bk-phone" placeholder="Ej. 71234567" />
+
+      <label>Tu correo (opcional, para recibir el aviso de confirmación)</label>
+      <input type="email" id="bk-email" placeholder="correo@ejemplo.com" />
+
+      <p id="bk-error-2" class="error-msg"></p>
+      <div class="two-buttons">
+        <button id="bk-back-1" class="btn-secondary">Atrás</button>
+        <button id="bk-to-step3" class="btn-primary">Continuar al pago</button>
       </div>
     </div>
 
-    <div id="booking-step-success" class="hidden">
+    <!-- PASO 3: pago con QR -->
+    <div id="step-3" class="hidden">
+      <div class="resumen" id="bk-resumen-2"></div>
+
+      <div class="pago-box">
+        <h3>Paga tu reserva</h3>
+        <p id="bk-deposit-line" class="deposit-line"></p>
+        <div id="bk-qr-box" class="qr-box">
+          <p class="muted">Cargando datos de pago...</p>
+        </div>
+        <p id="bk-payment-instructions" class="muted"></p>
+        <div id="bk-payment-holder" class="muted"></div>
+      </div>
+
+      <label>Sube la captura de tu comprobante <span id="bk-proof-required"></span></label>
+      <input type="file" id="bk-proof" accept="image/*" />
+      <div id="bk-proof-preview" class="proof-preview"></div>
+
+      <label>Número de referencia / transacción (opcional)</label>
+      <input type="text" id="bk-reference" placeholder="Ej. 000123456" />
+
+      <p id="bk-error-3" class="error-msg"></p>
+      <div class="two-buttons">
+        <button id="bk-back-2" class="btn-secondary">Atrás</button>
+        <button id="bk-submit" class="btn-primary">Confirmar reserva</button>
+      </div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div id="step-success" class="hidden">
       <div class="success-icon">✅</div>
-      <h2>¡Listo!</h2>
+      <h2>¡Reserva enviada!</h2>
       <p id="bk-success-message"></p>
-      <p class="muted">El salón confirmará tu cita pronto. Si necesitas cambiarla, contáctanos directamente.</p>
-      <button class="btn-secondary" onclick="location.reload()">Agendar otra cita</button>
+      <div class="codigo-box">
+        <span class="muted">Tu código de reserva</span>
+        <strong id="bk-code"></strong>
+      </div>
+      <p class="muted">Guarda este código. El salón revisará tu pago y confirmará tu cita.
+      Puedes ver el estado cuando quieras:</p>
+      <a id="bk-status-link" class="btn-primary" style="display:block;text-align:center;text-decoration:none;">Ver estado de mi cita</a>
+      <button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="location.reload()">Agendar otra cita</button>
     </div>
   </div>
 </div>
